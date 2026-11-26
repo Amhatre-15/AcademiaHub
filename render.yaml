@@ -70,5 +70,4 @@ databases:
   - name: academiahub-db
     plan: free
     databaseName: academiahub
-    user: postgres
     postgresMajorVersion: "16"
