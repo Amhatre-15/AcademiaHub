@@ -287,6 +287,87 @@ async function main() {
   }
   console.log(`✅ Faculty assignments seeded`);
 
+  // ─── Students & Enrollments ───────────────────────────────────────
+  const studentData = [
+    { prn: 'PRN2024001', firstName: 'Aarav', lastName: 'Sharma', batchId: b1.id },
+    { prn: 'PRN2024002', firstName: 'Ananya', lastName: 'Verma', batchId: b1.id },
+    { prn: 'PRN2024003', firstName: 'Rohan', lastName: 'Deshmukh', batchId: b1.id },
+    { prn: 'PRN2024004', firstName: 'Sneha', lastName: 'Patil', batchId: b1.id },
+    { prn: 'PRN2024005', firstName: 'Aditya', lastName: 'Kulkarni', batchId: b1.id },
+    { prn: 'PRN2024006', firstName: 'Riya', lastName: 'Joshi', batchId: b2.id },
+    { prn: 'PRN2024007', firstName: 'Tanmay', lastName: 'Shinde', batchId: b2.id },
+    { prn: 'PRN2024008', firstName: 'Pooja', lastName: 'Gupta', batchId: b2.id },
+    { prn: 'PRN2024009', firstName: 'Siddharth', lastName: 'Mehta', batchId: b2.id },
+    { prn: 'PRN2024010', firstName: 'Neha', lastName: 'Nair', batchId: b2.id },
+  ];
+
+  for (const s of studentData) {
+    const existingUser = await prisma.user.findUnique({ where: { username: s.prn } });
+    let studentId = '';
+
+    if (!existingUser) {
+      const studentPasswordHash = await bcrypt.hash(s.prn, 12);
+      const user = await prisma.user.create({
+        data: {
+          username: s.prn,
+          passwordHash: studentPasswordHash,
+          role: 'STUDENT',
+          firstLogin: true,
+          status: 'ACTIVE',
+          student: {
+            create: {
+              prn: s.prn,
+              firstName: s.firstName,
+              lastName: s.lastName,
+              status: 'ACTIVE',
+            },
+          },
+        },
+        include: { student: true },
+      });
+      studentId = user.student!.id;
+    } else {
+      const student = await prisma.student.findUnique({ where: { userId: existingUser.id } });
+      if (student) studentId = student.id;
+    }
+
+    if (studentId) {
+      await prisma.studentEngagement.upsert({
+        where: { studentId },
+        update: {},
+        create: {
+          studentId,
+          xp: 150,
+          currentStreak: 3,
+          longestStreak: 5,
+        },
+      });
+
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          studentId,
+          classId: syClass.id,
+          semesterId: semester3.id,
+        },
+      });
+
+      if (!existingEnrollment) {
+        await prisma.enrollment.create({
+          data: {
+            studentId,
+            classId: syClass.id,
+            divisionId: divisionA.id,
+            batchId: s.batchId,
+            academicYearId: academicYear.id,
+            semesterId: semester3.id,
+            status: 'ACTIVE',
+          },
+        });
+      }
+    }
+  }
+  console.log(`✅ ${studentData.length} Students & Enrollments seeded`);
+
   // ─── Badges ───────────────────────────────────────────────────────
   const badges = [
     { name: 'Perfect Attendee', description: '100% attendance for a month', icon: '🎯', criteriaType: 'ATTENDANCE_STREAK', criteriaValue: 20 },
