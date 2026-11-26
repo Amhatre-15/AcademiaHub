@@ -56,6 +56,13 @@ blob-report/
 load-tests/tokens.json
 load-tests/students.json
 
-# Graphify cache
-graphify-out/cache/
-graphify-out/.rebuild.lock
+# AI agent configurations and knowledge graphs
+.agents/
+.claude/
+.codex/
+.cursor/
+.gemini/
+graphify-out/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
