@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  # Non-secret values required by backend/src/config/env.ts at import time.
+  JWT_SECRET: ci-only-jwt-secret-not-for-production
+  SUPABASE_URL: https://example.supabase.co
+  SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+
+jobs:
+  # ── Backend unit / integration tests (Jest) ────────────────────────────────
+  backend-tests:
+    name: Backend tests (Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Generate Prisma client
+        working-directory: backend
+        run: npx prisma generate
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+        run: npm test
+
+      - name: TypeScript build
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+        run: npm run build
+
+  # ── Frontend component tests (Vitest) + production build ───────────────────
+  frontend-tests:
+    name: Frontend tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run component tests
+        working-directory: frontend
+        run: npm test
+
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
+
+  # ── Full-stack browser journey (Playwright + PostgreSQL) ───────────────────
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: academiahub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+      CI: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root tooling
+        run: npm ci
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Write backend .env
+        working-directory: backend
+        run: |
+          cat > .env <<'EOF'
+          NODE_ENV=development
+          PORT=5000
+          FRONTEND_URL=http://localhost:5173
+          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+          DIRECT_URL=postgresql://postgres:postgres@localhost:5432/academiahub?schema=public
+          SUPABASE_URL=https://example.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY=ci-placeholder-service-role-key
+          JWT_SECRET=ci-only-jwt-secret-not-for-production
+          INITIAL_ADMIN_USERNAME=admin
+          INITIAL_ADMIN_PASSWORD=Admin@sspu2024
+          EOF
+
+      - name: Apply database schema
+        working-directory: backend
+        run: npx prisma migrate deploy
+
+      - name: Seed institutional baseline
+        working-directory: backend
+        run: npm run db:seed
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E suite
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

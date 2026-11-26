@@ -1,0 +1,26 @@
+{
+  "name": "academiahub",
+  "version": "1.0.0",
+  "description": "AcademiaHub Root",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "install:all": "npm install && npm install --prefix backend && npm install --prefix frontend",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:install": "playwright install chromium",
+    "test:load:attendance": "k6 run load-tests/attendance-rush.js",
+    "test:load:sockets": "k6 run load-tests/live-session-sockets.js",
+    "graph:update": "graphify update .",
+    "graph:cluster": "graphify cluster-only .",
+    "graph:export": "graphify export wiki && graphify export html && graphify tree"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/pngjs": "^6.0.5",
+    "concurrently": "^8.2.2",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0"
+  }
+}
