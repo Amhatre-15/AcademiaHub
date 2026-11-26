@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
 import { 
   GraduationCap, 
   Users, 
@@ -29,6 +30,21 @@ const LandingPage = () => {
   const [wordIndex, setWordIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (token && user) {
+      const dashboardPath =
+        user.firstLogin ? '/change-password' :
+        user.role === 'IT_ADMIN' ? '/admin' :
+        user.role === 'FACULTY' ? '/faculty' :
+        user.role === 'PARENT' ? '/parent' :
+        '/student';
+      navigate(dashboardPath, { replace: true });
+    }
+  }, [token, user, navigate]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');

@@ -19,16 +19,17 @@ export default function LoginPage() {
     try {
       await login({ username, password });
 
-      // Send each role to its own cockpit. Falling back to `/` used to strand
-      // users on the public landing page after a successful sign-in.
       const user = useAuthStore.getState().user;
       const dashboardPath =
+        user?.firstLogin ? '/change-password' :
         user?.role === 'IT_ADMIN' ? '/admin' :
         user?.role === 'FACULTY' ? '/faculty' :
         user?.role === 'STUDENT' ? '/student' :
-        '/';
+        user?.role === 'PARENT' ? '/parent' :
+        '/admin';
 
-      navigate(from || dashboardPath, { replace: true });
+      const destination = (from && from !== '/') ? from : dashboardPath;
+      navigate(destination, { replace: true });
     } catch {
       // Error already set in store
     }
