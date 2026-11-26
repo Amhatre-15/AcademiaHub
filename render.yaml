@@ -2,7 +2,7 @@ services:
   # ─── AcademiaHub Backend (API & WebSockets) ──────────────────────────
   - type: web
     name: academiahub-backend
-    env: node
+    runtime: node
     plan: free
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
@@ -40,7 +40,7 @@ services:
   # ─── AcademiaHub Frontend (Vite React SPA) ───────────────────────────
   - type: web
     name: academiahub-frontend
-    env: static
+    runtime: static
     plan: free
     rootDir: frontend
     buildCommand: npm install && npm run build
@@ -71,3 +71,4 @@ databases:
     plan: free
     databaseName: academiahub
     user: postgres
+    postgresMajorVersion: "16"
