@@ -28,10 +28,7 @@ services:
       - key: JWT_REFRESH_EXPIRES_IN
         value: 30d
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: academiahub-frontend
-          property: host
+        value: https://academiahub-frontend.onrender.com
       - key: SUPABASE_URL
         value: https://placeholder.supabase.co
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -50,17 +47,9 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: academiahub-backend
-          property: host
-          format: https://{host}/api
+        value: https://academiahub-backend-ahzt.onrender.com/api
       - key: VITE_WS_URL
-        fromService:
-          type: web
-          name: academiahub-backend
-          property: host
-          format: wss://{host}
+        value: wss://academiahub-backend-ahzt.onrender.com
       - key: VITE_APP_NAME
         value: AcademiaHub
 
