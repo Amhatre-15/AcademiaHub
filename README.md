@@ -290,5 +290,11 @@ AcademiaHub/
 
 ## 📄 License & Authors
 
-Developed by **Atharva Ajit Mhatre** for academic and institutional management.  
+Developed and engineered by:
+* **Atharva Ajit Mhatre**
+* **Laxi Patel**
+* **Niharika Pandey**
+* **Shubh Patel**
+* **Dhruv Patel**
+
 Licensed under the MIT License.
