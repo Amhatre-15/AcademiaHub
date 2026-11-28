@@ -28,7 +28,7 @@ const words = [
 
 const LandingPage = () => {
   const [wordIndex, setWordIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [phase, setPhase] = useState<'visible' | 'exit' | 'enter'>('visible');
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -61,12 +61,18 @@ const LandingPage = () => {
     if (isReducedMotion) return;
 
     const interval = setInterval(() => {
-      setIsAnimating(true);
+      // Phase 1: slide out upward
+      setPhase('exit');
       setTimeout(() => {
+        // Phase 2: swap word (invisible)
         setWordIndex((current) => (current + 1) % words.length);
-        setIsAnimating(false);
-      }, 250);
-    }, 2500);
+        setPhase('enter');
+        // Phase 3: slide in from below
+        setTimeout(() => {
+          setPhase('visible');
+        }, 50);
+      }, 300);
+    }, 2800);
 
     return () => clearInterval(interval);
   }, [isReducedMotion]);
@@ -109,11 +115,18 @@ const LandingPage = () => {
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight mb-6 leading-tight">
             Education Management, <br />
             <span
-              className={`inline-block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 transition-all duration-300 transform ${
-                isAnimating && !isReducedMotion
-                  ? 'opacity-0 -translate-y-2 scale-95'
-                  : 'opacity-100 translate-y-0 scale-100'
-              }`}
+              className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600"
+              style={{
+                display: 'inline-block',
+                transition: isReducedMotion ? 'none' : 'opacity 0.28s ease, transform 0.28s ease',
+                opacity: phase === 'exit' || phase === 'enter' ? 0 : 1,
+                transform:
+                  phase === 'exit'
+                    ? 'translateY(-14px) scale(0.96)'
+                    : phase === 'enter'
+                    ? 'translateY(14px) scale(0.96)'
+                    : 'translateY(0px) scale(1)',
+              }}
             >
               {words[wordIndex]}
             </span>
